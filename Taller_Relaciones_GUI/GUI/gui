@@ -1,0 +1,108 @@
+# main.py
+
+import sys
+from PySide6.QtWidgets import (
+    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
+    QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QMessageBox
+)
+from controller import HospitalController
+
+class HospitalApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Sistema de Información Hospitalaria")
+        self.setGeometry(100, 100, 600, 400)
+
+        self.controller = HospitalController()
+
+        # --- Widgets ---
+        # Hospital
+        self.hospital_input = QLineEdit()
+        self.hospital_btn = QPushButton("Crear Hospital")
+        self.hospital_btn.clicked.connect(self.crear_hospital)
+
+        # Doctor
+        self.dni_input = QLineEdit()
+        self.nombre_input = QLineEdit()
+        self.especialidad_input = QLineEdit()
+        self.doctor_btn = QPushButton("Agregar Doctor")
+        self.doctor_btn.clicked.connect(self.agregar_doctor)
+
+        # Buscar
+        self.buscar_dni_input = QLineEdit()
+        self.buscar_btn = QPushButton("Buscar por DNI")
+        self.buscar_btn.clicked.connect(self.buscar_doctor)
+
+        # Tabla
+        self.resultado_tabla = QTableWidget(1, 4)
+        self.resultado_tabla.setHorizontalHeaderLabels(["Hospital", "Nombre", "DNI", "Especialidad"])
+
+        # --- Layout ---
+        layout = QVBoxLayout()
+
+        layout.addWidget(QLabel("Nombre del Hospital"))
+        layout.addWidget(self.hospital_input)
+        layout.addWidget(self.hospital_btn)
+
+        layout.addWidget(QLabel("Agregar Doctor: DNI, Nombre, Especialidad"))
+        layout.addWidget(self.dni_input)
+        layout.addWidget(self.nombre_input)
+        layout.addWidget(self.especialidad_input)
+        layout.addWidget(self.doctor_btn)
+
+        layout.addWidget(QLabel("Buscar Doctor por DNI"))
+        layout.addWidget(self.buscar_dni_input)
+        layout.addWidget(self.buscar_btn)
+
+        layout.addWidget(self.resultado_tabla)
+
+        self.setLayout(layout)
+
+    def crear_hospital(self):
+        nombre = self.hospital_input.text()
+        if nombre:
+            self.controller.crear_hospital(nombre)
+            QMessageBox.information(self, "Éxito", f"Hospital '{nombre}' creado.")
+        else:
+            QMessageBox.warning(self, "Error", "Debe ingresar un nombre de hospital.")
+
+    def agregar_doctor(self):
+        dni = self.dni_input.text()
+        nombre = self.nombre_input.text()
+        especialidad = self.especialidad_input.text()
+
+        if not (dni and nombre and especialidad):
+            QMessageBox.warning(self, "Error", "Todos los campos del doctor son obligatorios.")
+            return
+
+        try:
+            self.controller.agregar_doctor(dni, nombre, especialidad)
+            QMessageBox.information(self, "Éxito", f"Doctor '{nombre}' agregado.")
+            self.dni_input.clear()
+            self.nombre_input.clear()
+            self.especialidad_input.clear()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+    def buscar_doctor(self):
+        dni = self.buscar_dni_input.text()
+        if not dni:
+            QMessageBox.warning(self, "Error", "Debe ingresar un DNI.")
+            return
+
+        resultado = self.controller.buscar_doctor_por_dni(dni)
+        if resultado:
+            self.resultado_tabla.setRowCount(1)
+            self.resultado_tabla.setItem(0, 0, QTableWidgetItem(resultado["hospital"]))
+            self.resultado_tabla.setItem(0, 1, QTableWidgetItem(resultado["doctor_nombre"]))
+            self.resultado_tabla.setItem(0, 2, QTableWidgetItem(resultado["doctor_dni"]))
+            self.resultado_tabla.setItem(0, 3, QTableWidgetItem(resultado["especialidad"]))
+        else:
+            QMessageBox.information(self, "No encontrado", f"No se encontró un doctor con DNI {dni}")
+
+# --- Ejecución ---
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    ventana = HospitalApp()
+    ventana.show()
+    sys.exit(app.exec())
